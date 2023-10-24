@@ -40,6 +40,9 @@
        (map (fn [[k v]] [(keyword k) (clojure.string/split v #",")]))
        (into {})))
 
+(defn change-value-nec-to-string-vec [map]
+  (assoc map :command (apply list (get map :command))))
+
 ; KGF : TODO TEST
 (defn get-data []
   (parse-file (read-in-file)))
@@ -78,12 +81,12 @@
 ;(prn "listing")
 ;(prn (execute [:list]))
 
-;(defn -main
-;  [& args]
-;  (->>
-;    (parse args)
-;    (validate)
-;    (execute)))
+(defn -main
+  [& args]
+  (->>
+    (parse args)
+    (validate)
+    (execute)))
 
 (comment
   ":GOALS
@@ -121,8 +124,6 @@
 ;                #(clojure.string/split % #"\n"))]
 ;    (parse src)))
 
-
-
 (clojure.test/is
   (=
     {:todo ["Go to the store" "Rock climb"]}
@@ -137,3 +138,17 @@
     {:todo ["Go to the store" "Rock climb"] :complete ["program for work" "try harder"]}
     (parse-file "todo:Go to the store,Rock climb\ncomplete:program for work,try harder")))
 
+(clojure.test/is
+  (=
+    ["program for work" "try harder"]
+    (get (parse-file "todo:Go to the store,Rock climb\ncomplete:program for work,try harder") :complete )))
+
+(clojure.test/is
+  (=
+    ["program for work" "try harder"]
+    (apply list ["program for work" "try harder"])))
+
+(clojure.test/is
+  (=
+    '("program for work" "try harder")
+    (apply list (get (parse-file "todo:Go to the store,Rock climb\ncomplete:program for work,try harder") :complete ))))
