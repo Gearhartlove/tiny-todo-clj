@@ -43,31 +43,43 @@
 
 (defn existing-data [] (parse-toml-file (todo-file)))
 
-(defn list-todo []
-  (prn (get-in (existing-data) [:todo-list :todo])))
+(defn listing
+  ([key] (println (get-in (existing-data) key)))
+  ([title key] (println title (get-in (existing-data) key))))
+
+(defn remove-from [key arg data]
+  ; returns the data source the data was removed from
+  (assoc-in
+     data
+     key
+     (remove #{arg} (get-in data key))))
+
+(defn add-to [key arg data]
+  (assoc-in
+    data
+    key
+    (conj (get-in data key) arg)))
 
 (defn execute
   "Mutate todo data. Can change the :todo OR :completed keywords. Returns the mutated data."
   [[cmd arg]]
   (case cmd
     :add (do
-           (save
-             (assoc-in
-               (existing-data)
-               [:todo-list :todo]
-               (conj (get-in (existing-data) [:todo-list :todo]) arg)))
-           (list-todo))
-    :list (list-todo)
+           (save (add-to [:todo-list :todo] arg (existing-data)))
+           (listing "TODO" [:todo-list :todo]))
+    :list (do
+            (listing "TODO" [:todo-list :todo])
+            (listing "COMPLETED" [:todo-list :completed]))
     :remove (do
-              (save
-                (assoc-in
-                  (existing-data)
-                  [:todo-list :todo]
-                  (remove #{arg} (get-in (existing-data) [:todo-list :todo]))))
-              (list-todo))
-    :complete (save
-                ((remove #(= % arg) (existing-data))
-                 (conj (get-in (existing-data) [:todo-list :completed]) arg)))))
+              (save (remove-from [:todo-list :todo] arg (existing-data)))
+              (listing "TODO" [:todo-list :todo]))
+    :complete (do
+                (save
+                  (add-to
+                  [:todo-list :completed]
+                  arg
+                  (remove-from [:todo-list :todo] arg (existing-data))))
+                (listing "COMPLETED" [:todo-list :completed]))))
 
 
 (defn -main
