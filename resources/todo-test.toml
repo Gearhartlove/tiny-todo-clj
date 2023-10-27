@@ -1,0 +1,4 @@
+
+[todo-list]
+todo = ["foo", "fuz"]
+completed = ["bar"]

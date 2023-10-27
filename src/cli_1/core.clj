@@ -1,91 +1,76 @@
 (ns cli-1.core
-  (:require [clojure.test :refer :all]))
+  (:gen-class)
+  (:require [clojure.test :refer :all]
+            [toml.core :as toml]))
 
-(defn parse
+(defn todo-file [] "/Users/gearhart/projects/clojure/cli/resources/todo.toml")
+
+(defn parse-user-input
   "match on command and return the desired command and it's arguments"
   [& args]
   (let
-    [maybe-command (.toLowerCase (str (first (first args))))
-     maybe-args (str (second (first args)))
-     cmd-args (condp = maybe-command
-               "add"      [:add maybe-args]
+    [maybe-command (.toLowerCase (str (first (flatten args))))
+     maybe-args (second (flatten args))
+     cmd (condp = maybe-command
+               "add"      :add
                "list"    :list
                "delete"  :remove
                "done"    :complete
                :unknown)]
-    cmd-args
+    [cmd maybe-args]
     ))
 
-(defn validate [cmd-args]
-  (when (= :unknown cmd-args)
+(defn validate-user-input [[cmd args]]
+  (when (= :unknown cmd)
     (throw
       (ex-info "Unknown command" {:cause :unknown-command})))
   (when
     (and
-      (= :add (first cmd-args))
-      (= nil  (second cmd-args)))
+      (= :add cmd)
+      (= nil  args))
     (throw
       (ex-info "Missing second argument" {:cause :missing-second-arg})))
-  cmd-args)
+  [cmd args])
 
-(defn read-in-file []
-  (slurp "../../resources/todo.txt"))
+(defn save
+  "Saves the todo list data to the todo file."
+  ([data] (spit (todo-file) (toml/write data)))
+  ([data file] (spit file (toml/write data))))
 
-(defn parse-file [src]
-  (->> src
-       ; note, best to start with split-lines
-       ; because the regex yells at you otherwise
-       (clojure.string/split-lines)
-       (map #(clojure.string/split % #":"))
-       (map (fn [[k v]] [(keyword k) (clojure.string/split v #",")]))
-       (into {})))
+(defn parse-toml-file
+  "parses specified file to a keywordize-d map"
+  ([file] (toml/read (slurp file) :keywordize)))
 
-(defn change-value-nec-to-string-vec [map]
-  (assoc map :command (apply list (get map :command))))
-
-; KGF : TODO TEST
-(defn get-data []
-  (parse-file (read-in-file)))
-
-(prn (get-data))
-
-
-; KGF : need "object" to add items to
-; note : it's called a todo LIST
-;        maybe I can create this using lists!
-; > it would be nice if I could reorder items. Vec
-;   would be better for this.
-; > I will make completed a list so that it's easy to
-;   add to and undo
-; schema :
-; * todo ["Go to the store","program clojure", "eat dinner with family"]
-; * complete ("eat breakfast", "bake macaroni")
-(defn execute [cmd-args]
-  (let [
-        cmd (first cmd-args)
-        arg? (second cmd-args)
-        ; read in file
-        todo '()
-        ]
+(defn execute
+  "Mutate todo data. Can change the :todo OR :completed keywords. Returns the mutated data."
+  [[cmd arg]]
+  (let [existing-data (parse-toml-file (todo-file))]
     (case cmd
-      ; kgf : use 'get-data' function to get saved map of todo list, add the args to the map. write the map out afterwords
-      :add (spit "todo.txt"
-                 (conj todo arg?))
-      :list todo
-      :remove ()
-      :complete ())
-    ))
+      :add (save (assoc-in existing-data [:todo-list :todo] (conj (get-in existing-data [:todo-list :todo]) arg)))
+      :list (get existing-data :todo)
+      :remove (save (remove #(= % arg) existing-data))
+      :complete (save
+                  ((remove #(= % arg) existing-data)
+                   (conj (get-in existing-data [:todo-list :completed]) arg))))))
 
-;(prn "adding")
-;(prn (execute [:add "Go to the store"]))
-;(prn "listing")
-;(prn (execute [:list]))
+;(defn execute
+;  "Mutate todo data. Can change the :todo OR :completed keywords. Returns the mutated data."
+;  [[cmd arg]]
+;  (let [existing-data (parse-toml-file (todo-file))]))
+      ;:list (get existing-data :todo)
+      ;:remove (save (remove #(= % arg) existing-data))
+      ;:complete (save
+      ;            ((remove #(= % arg) existing-data)
+      ;             (conj (get-in existing-data [:todo-list :completed]) arg))))))
+
+
+
 
 (defn -main
   [& args]
   (->>
-    (parse args)
-    (validate)
+    (parse-user-input args)
+    (validate-user-input)
     (execute)))
 
 (comment
@@ -112,43 +97,3 @@
   * Delete Task: Allow users to delete a task from the list.
   Example command: delete 2 (deletes the task with index 2)
   * Save and Load Tasks: Implement functionality to save the tasks to a file and load them when the program starts. This will allow users to persist their to-do list across sessions.")
-
-; KGF : Keeping for learning on let functions
-;(defn parse-todo [src]
-;  (let [parse (comp
-;                (let [key #(keyword (first %))
-;                      val #(second %)]
-;                  (fn [pair] [(key pair) (val pair)]))
-;                #(clojure.string/split % #":")
-;                #(first %)
-;                #(clojure.string/split % #"\n"))]
-;    (parse src)))
-
-(clojure.test/is
-  (=
-    {:todo ["Go to the store" "Rock climb"]}
-    (parse-file "todo:Go to the store,Rock climb")))
-(clojure.test/is
-  (=
-    {:complete ["program for work" "try harder"]}
-    (parse-file "complete:program for work,try harder")))
-
-(clojure.test/is
-  (=
-    {:todo ["Go to the store" "Rock climb"] :complete ["program for work" "try harder"]}
-    (parse-file "todo:Go to the store,Rock climb\ncomplete:program for work,try harder")))
-
-(clojure.test/is
-  (=
-    ["program for work" "try harder"]
-    (get (parse-file "todo:Go to the store,Rock climb\ncomplete:program for work,try harder") :complete )))
-
-(clojure.test/is
-  (=
-    ["program for work" "try harder"]
-    (apply list ["program for work" "try harder"])))
-
-(clojure.test/is
-  (=
-    '("program for work" "try harder")
-    (apply list (get (parse-file "todo:Go to the store,Rock climb\ncomplete:program for work,try harder") :complete ))))
