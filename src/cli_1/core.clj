@@ -61,8 +61,7 @@
     :remove (save (remove #(= % arg) (existing-data)))
     :complete (save
                 ((remove #(= % arg) (existing-data))
-                 (conj (get-in (existing-data) [:todo-list :completed]) arg))))
-  )
+                 (conj (get-in (existing-data) [:todo-list :completed]) arg)))))
 
 
 (defn -main
