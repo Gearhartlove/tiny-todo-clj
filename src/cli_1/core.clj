@@ -41,29 +41,28 @@
   "parses specified file to a keywordize-d map"
   ([file] (toml/read (slurp file) :keywordize)))
 
+(defn existing-data [] (parse-toml-file (todo-file)))
+
+(defn list-todo []
+  (prn (get-in (existing-data) [:todo-list :todo])))
+
 (defn execute
   "Mutate todo data. Can change the :todo OR :completed keywords. Returns the mutated data."
   [[cmd arg]]
-  (let [existing-data (parse-toml-file (todo-file))]
-    (case cmd
-      :add (save (assoc-in existing-data [:todo-list :todo] (conj (get-in existing-data [:todo-list :todo]) arg)))
-      :list (get existing-data :todo)
-      :remove (save (remove #(= % arg) existing-data))
-      :complete (save
-                  ((remove #(= % arg) existing-data)
-                   (conj (get-in existing-data [:todo-list :completed]) arg))))))
-
-;(defn execute
-;  "Mutate todo data. Can change the :todo OR :completed keywords. Returns the mutated data."
-;  [[cmd arg]]
-;  (let [existing-data (parse-toml-file (todo-file))]))
-      ;:list (get existing-data :todo)
-      ;:remove (save (remove #(= % arg) existing-data))
-      ;:complete (save
-      ;            ((remove #(= % arg) existing-data)
-      ;             (conj (get-in existing-data [:todo-list :completed]) arg))))))
-
-
+  (case cmd
+    :add (do
+           (save
+             (assoc-in
+               (existing-data)
+               [:todo-list :todo]
+               (conj (get-in (existing-data) [:todo-list :todo]) arg)))
+           (list-todo))
+    :list (list-todo)
+    :remove (save (remove #(= % arg) (existing-data)))
+    :complete (save
+                ((remove #(= % arg) (existing-data))
+                 (conj (get-in (existing-data) [:todo-list :completed]) arg))))
+  )
 
 
 (defn -main
