@@ -14,7 +14,7 @@
      cmd (condp = maybe-command
                "add"      :add
                "list"    :list
-               "delete"  :remove
+               "remove"  :remove
                "done"    :complete
                :unknown)]
     [cmd maybe-args]
@@ -58,7 +58,13 @@
                (conj (get-in (existing-data) [:todo-list :todo]) arg)))
            (list-todo))
     :list (list-todo)
-    :remove (save (remove #(= % arg) (existing-data)))
+    :remove (do
+              (save
+                (assoc-in
+                  (existing-data)
+                  [:todo-list :todo]
+                  (remove #{arg} (get-in (existing-data) [:todo-list :todo]))))
+              (list-todo))
     :complete (save
                 ((remove #(= % arg) (existing-data))
                  (conj (get-in (existing-data) [:todo-list :completed]) arg)))))
