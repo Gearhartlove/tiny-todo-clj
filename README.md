@@ -1,22 +1,27 @@
 # cli-1
 
-A Clojure library designed to ... well, that part is up to you.
+A tiny Clojure todo cli
 
-## Usage
+### goals
+(*start learning clojure!*)
+- import first library
+  - toml parsing with `toml "0.1.4"`
+- implement basic todo actions
+  - add
+  - delete
+  - complete
+  - list todo + completed tasks
+- save + read from file 
+- implement unit tests
+ 
+### usage
+(*assumes you have leiningen installed*)
 
-FIXME
+`lein run add "Go to the store"`
 
-## License
+`lein run done "Go to the store"`
 
-Copyright © 2023 FIXME
+`lein run remove "Go to the store"`
 
-This program and the accompanying materials are made available under the
-terms of the Eclipse Public License 2.0 which is available at
-http://www.eclipse.org/legal/epl-2.0.
+`lein run list`
 
-This Source Code may also be made available under the following Secondary
-Licenses when the conditions for such availability set forth in the Eclipse
-Public License, v. 2.0 are satisfied: GNU General Public License as published by
-the Free Software Foundation, either version 2 of the License, or (at your
-option) any later version, with the GNU Classpath Exception which is available
-at https://www.gnu.org/software/classpath/license.html.
